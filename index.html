@@ -16,8 +16,8 @@
 
     #app {
       display: grid;
-      grid-template-columns: 2fr 1.5fr;
-      gap: 0;
+      grid-template-columns: 2fr 1.6fr;
+      grid-template-rows: auto 1fr;
       width: 100%;
     }
 
@@ -178,7 +178,7 @@
       padding: 8px 10px;
       font-size: 12px;
       background: #101528;
-      max-height: 45vh;
+      max-height: 32vh;
       overflow-y: auto;
       white-space: pre-line;
     }
@@ -189,6 +189,7 @@
       padding: 8px 10px;
       font-size: 12px;
       background: #101528;
+      margin-top: 10px;
     }
 
     .province-row {
@@ -233,6 +234,79 @@
       font-size: 11px;
       color: #9fa8d3;
     }
+
+    /* Visual map styles */
+
+    .map-svg-container {
+      border: 1px solid #222a3f;
+      border-radius: 8px;
+      background: #101528;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .map-svg-container svg {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    .province-node {
+      cursor: pointer;
+      transition: transform 80ms ease-out;
+    }
+
+    .province-node:hover {
+      transform: scale(1.05);
+    }
+
+    .province-circle-land {
+      fill: #4caf50;
+    }
+
+    .province-circle-coast {
+      fill: #03a9f4;
+    }
+
+    .province-circle-sea {
+      fill: #1e88e5;
+    }
+
+    .province-circle-sc {
+      stroke: #fbc02d;
+      stroke-width: 2;
+    }
+
+    .province-label {
+      font-size: 11px;
+      fill: #e0e7ff;
+      pointer-events: none;
+    }
+
+    .edge-line {
+      stroke: #3949ab;
+      stroke-width: 1.3;
+      opacity: 0.5;
+    }
+
+    .unit-token {
+      stroke: #ffffff;
+      stroke-width: 1.2;
+    }
+
+    .unit-token-army {
+      fill: #43a047;
+    }
+
+    .unit-token-fleet {
+      fill: #039be5;
+    }
+
+    .unit-token-label {
+      font-size: 9px;
+      fill: #ffffff;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -240,10 +314,10 @@
     <header>
       <div>
         <h1>Sword Coast Diplomacy Variant</h1>
-        <small>Local web app for custom Diplomacy style play</small>
+        <small>Local web app with basic map visualization</small>
       </div>
       <div class="hint">
-        Pro tip: share this file or host as GitHub Pages for online play
+        Host this repo with GitHub Pages to share the link with your group
       </div>
     </header>
 
@@ -282,7 +356,12 @@
     </section>
 
     <section class="panel">
-      <h2>Map Data</h2>
+      <h2>Map View</h2>
+      <div class="map-svg-container">
+        <svg id="svgMap" viewBox="0 0 800 320"></svg>
+      </div>
+
+      <h3>Province List</h3>
       <div class="map-grid" id="mapView"></div>
 
       <h3 style="margin-top: 14px;">Turn Log</h3>
@@ -291,50 +370,73 @@
   </div>
 
   <script>
-    // Data model
+    // Province data model with simple Sword Coast inspired layout
+    // x and y are map coordinates used for visualization.
 
     const provinces = {
-      Waterdeep: {
-        name: "Waterdeep",
-        type: "land",
+      Neverwinter: {
+        name: "Neverwinter",
+        type: "coast",
         isSupplyCenter: true,
-        neighbors: ["SwordMountains", "Daggerford", "SeaOfSwords"]
+        neighbors: ["SwordMountains", "SeaOfSwords", "Luskan"],
+        x: 220,
+        y: 60
+      },
+      Luskan: {
+        name: "Luskan",
+        type: "coast",
+        isSupplyCenter: false,
+        neighbors: ["Neverwinter", "SeaOfSwords"],
+        x: 160,
+        y: 30
       },
       SwordMountains: {
-        name: "SwordMountains",
+        name: "Sword Mountains",
         type: "land",
         isSupplyCenter: false,
-        neighbors: ["Waterdeep", "Neverwinter"]
+        neighbors: ["Neverwinter", "Waterdeep"],
+        x: 260,
+        y: 110
+      },
+      Waterdeep: {
+        name: "Waterdeep",
+        type: "coast",
+        isSupplyCenter: true,
+        neighbors: ["SwordMountains", "Daggerford", "SeaOfSwords"],
+        x: 300,
+        y: 150
       },
       Daggerford: {
         name: "Daggerford",
         type: "land",
         isSupplyCenter: true,
-        neighbors: ["Waterdeep", "BaldursGate", "SeaOfSwords"]
+        neighbors: ["Waterdeep", "BaldursGate", "SeaOfSwords"],
+        x: 320,
+        y: 190
       },
       BaldursGate: {
-        name: "BaldursGate",
-        type: "land",
+        name: "Baldur's Gate",
+        type: "coast",
         isSupplyCenter: true,
-        neighbors: ["Daggerford", "ChiontharMouth"]
+        neighbors: ["Daggerford", "ChiontharMouth", "SeaOfSwords"],
+        x: 360,
+        y: 230
       },
       ChiontharMouth: {
-        name: "ChiontharMouth",
+        name: "Chionthar Mouth",
         type: "coast",
         isSupplyCenter: false,
-        neighbors: ["BaldursGate", "SeaOfSwords"]
-      },
-      Neverwinter: {
-        name: "Neverwinter",
-        type: "coast",
-        isSupplyCenter: true,
-        neighbors: ["SwordMountains", "SeaOfSwords"]
+        neighbors: ["BaldursGate", "SeaOfSwords"],
+        x: 410,
+        y: 250
       },
       SeaOfSwords: {
-        name: "SeaOfSwords",
+        name: "Sea of Swords",
         type: "sea",
         isSupplyCenter: false,
-        neighbors: ["Waterdeep", "Daggerford", "ChiontharMouth", "Neverwinter"]
+        neighbors: ["Luskan", "Neverwinter", "Waterdeep", "Daggerford", "BaldursGate", "ChiontharMouth"],
+        x: 210,
+        y: 190
       }
     };
 
@@ -369,7 +471,7 @@
 
     function renderStateSummary() {
       const el = document.getElementById("stateSummary");
-      el.textContent = "Year " + gameState.year + " " + gameState.season 
+      el.textContent = "Year " + gameState.year + " " + gameState.season
         + " | Units in play: " + gameState.units.length;
     }
 
@@ -417,7 +519,7 @@
         const tr = document.createElement("tr");
 
         const tdUnit = document.createElement("td");
-        tdUnit.textContent = u.power + " " + (u.type === "A" ? "Army" : "Fleet") 
+        tdUnit.textContent = u.power + " " + (u.type === "A" ? "Army" : "Fleet")
           + " in " + provinces[u.location].name;
 
         const tdOrderType = document.createElement("td");
@@ -457,11 +559,11 @@
       });
     }
 
-    function renderMapView() {
+    function renderMapList() {
       const container = document.getElementById("mapView");
       container.innerHTML = "";
 
-      Object.values(provinces).forEach(p => {
+      Object.entries(provinces).forEach(([key, p]) => {
         const row = document.createElement("div");
         row.className = "province-row";
 
@@ -471,8 +573,8 @@
 
         const typePill = document.createElement("span");
         typePill.className = "type-pill";
-        typePill.textContent = p.type === "land" 
-          ? "Land" 
+        typePill.textContent = p.type === "land"
+          ? "Land"
           : (p.type === "sea" ? "Sea" : "Coast");
         name.appendChild(typePill);
 
@@ -499,11 +601,107 @@
       el.textContent = logEntries.join("\n");
     }
 
+    function renderSvgMap() {
+      const svg = document.getElementById("svgMap");
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const entries = Object.entries(provinces);
+
+      // Draw adjacency lines
+      entries.forEach(([key, p]) => {
+        p.neighbors.forEach(neighborKey => {
+          // To avoid double drawing, only draw if key < neighborKey (string compare)
+          if (key < neighborKey) {
+            const n = provinces[neighborKey];
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", p.x);
+            line.setAttribute("y1", p.y);
+            line.setAttribute("x2", n.x);
+            line.setAttribute("y2", n.y);
+            line.setAttribute("class", "edge-line");
+            svg.appendChild(line);
+          }
+        });
+      });
+
+      // Draw province circles and labels
+      entries.forEach(([key, p]) => {
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.setAttribute("class", "province-node");
+        group.dataset.key = key;
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", p.x);
+        circle.setAttribute("cy", p.y);
+        circle.setAttribute("r", 10);
+
+        let typeClass = "province-circle-land";
+        if (p.type === "sea") typeClass = "province-circle-sea";
+        if (p.type === "coast") typeClass = "province-circle-coast";
+
+        circle.setAttribute("class", typeClass + (p.isSupplyCenter ? " province-circle-sc" : ""));
+        group.appendChild(circle);
+
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", p.x);
+        label.setAttribute("y", p.y - 14);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("class", "province-label");
+        label.textContent = p.name;
+        group.appendChild(label);
+
+        group.addEventListener("click", () => {
+          const neighbors = p.neighbors.map(n => provinces[n].name).join(", ");
+          addLog("Province: " + p.name + " | Type: " + p.type
+            + (p.isSupplyCenter ? " (Supply Center)" : "")
+            + " | Adjacent to: " + neighbors);
+        });
+
+        svg.appendChild(group);
+      });
+
+      // Draw unit tokens
+      gameState.units.forEach(u => {
+        const p = provinces[u.location];
+        if (!p) return;
+
+        const gx = p.x + 14;
+        const gy = p.y + 12;
+
+        const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+        const token = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        token.setAttribute("x", gx - 8);
+        token.setAttribute("y", gy - 8);
+        token.setAttribute("width", 16);
+        token.setAttribute("height", 16);
+        token.setAttribute("rx", 3);
+        token.setAttribute("ry", 3);
+        token.setAttribute("class",
+          "unit-token " + (u.type === "A" ? "unit-token-army" : "unit-token-fleet")
+        );
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", gx);
+        text.setAttribute("y", gy + 3);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("class", "unit-token-label");
+        const abbrev = u.power.slice(0, 2).toUpperCase();
+        text.textContent = abbrev;
+
+        group.appendChild(token);
+        group.appendChild(text);
+
+        svg.appendChild(group);
+      });
+    }
+
     function renderAll() {
       renderStateSummary();
       renderUnits();
       renderOrdersForm();
-      renderMapView();
+      renderMapList();
+      renderSvgMap();
       renderLog();
     }
 
@@ -551,7 +749,6 @@
       });
 
       const moves = {}; // origin -> final destination
-
       const messages = [];
 
       orders.forEach(o => {
@@ -582,13 +779,13 @@
           if (!unitPositions[o.target]) {
             moves[o.origin] = o.target;
             messages.push(
-              o.power + " unit in " + originName + " moves to " 
+              o.power + " unit in " + originName + " moves to "
               + provinces[o.target].name + "."
             );
           } else {
             moves[o.origin] = o.origin;
             messages.push(
-              o.power + " unit in " + originName + " bounces in " 
+              o.power + " unit in " + originName + " bounces in "
               + provinces[o.target].name + " and stays in place."
             );
           }
@@ -604,7 +801,6 @@
             location: moveDest
           };
         }
-        // units with no explicit order hold
         messages.push(u.power + " unit in " + provinces[u.location].name + " had no order and holds.");
         return u;
       });
