@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sword Coast Diplomacy Variant</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0b1020;
+      color: #f4f4f4;
+      display: flex;
+      height: 100vh;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr;
+      gap: 0;
+      width: 100%;
+    }
+
+    header {
+      grid-column: 1 / span 2;
+      padding: 16px 24px;
+      background: #11172b;
+      border-bottom: 1px solid #222a3f;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    header small {
+      color: #9fa8d3;
+      font-size: 12px;
+    }
+
+    .panel {
+      padding: 16px 20px;
+      overflow-y: auto;
+    }
+
+    .panel + .panel {
+      border-left: 1px solid #222a3f;
+    }
+
+    h2 {
+      font-size: 16px;
+      margin: 0 0 8px 0;
+    }
+
+    h3 {
+      font-size: 14px;
+      margin: 12px 0 6px 0;
+    }
+
+    .state-summary {
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #c5cae9;
+    }
+
+    .units-list {
+      border: 1px solid #222a3f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #101528;
+    }
+
+    .unit-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #1a2135;
+    }
+
+    .unit-row:last-child {
+      border-bottom: none;
+    }
+
+    .unit-power {
+      font-weight: 600;
+    }
+
+    .unit-location {
+      color: #9fa8d3;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .tag-army {
+      background: rgba(129, 199, 132, 0.1);
+      color: #a5d6a7;
+      border: 1px solid #2e7d32;
+    }
+
+    .tag-fleet {
+      background: rgba(100, 181, 246, 0.08);
+      color: #90caf9;
+      border: 1px solid #1565c0;
+    }
+
+    .tag-sc {
+      background: rgba(255, 241, 118, 0.1);
+      color: #fff59d;
+      border: 1px solid #fbc02d;
+    }
+
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .orders-table th,
+    .orders-table td {
+      padding: 6px 4px;
+      border-bottom: 1px solid #1a2135;
+    }
+
+    .orders-table th {
+      text-align: left;
+      color: #9fa8d3;
+      font-weight: 500;
+    }
+
+    select {
+      background: #101528;
+      border: 1px solid #283252;
+      color: #f4f4f4;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+    }
+
+    button {
+      background: #3949ab;
+      border: none;
+      color: #f4f4f4;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #5c6bc0;
+    }
+
+    .secondary {
+      background: transparent;
+      border: 1px solid #3949ab;
+      margin-left: 8px;
+    }
+
+    .secondary:hover {
+      background: rgba(57, 73, 171, 0.18);
+    }
+
+    .log {
+      border: 1px solid #222a3f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #101528;
+      max-height: 45vh;
+      overflow-y: auto;
+      white-space: pre-line;
+    }
+
+    .map-grid {
+      border: 1px solid #222a3f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      background: #101528;
+    }
+
+    .province-row {
+      padding: 4px 0;
+      border-bottom: 1px solid #1a2135;
+    }
+
+    .province-row:last-child {
+      border-bottom: none;
+    }
+
+    .province-name {
+      font-weight: 600;
+    }
+
+    .neighbors {
+      color: #9fa8d3;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .type-pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid #283252;
+      color: #c5cae9;
+      margin-left: 4px;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #9fa8d3;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div>
+        <h1>Sword Coast Diplomacy Variant</h1>
+        <small>Local web app for custom Diplomacy style play</small>
+      </div>
+      <div class="hint">
+        Pro tip: share this file or host as GitHub Pages for online play
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Current State</h2>
+      <div id="stateSummary" class="state-summary"></div>
+
+      <h3>Units</h3>
+      <div id="unitsView" class="units-list"></div>
+
+      <h3>Issue Orders</h3>
+      <div class="hint">
+        For each unit choose Hold or Move and a legal target.
+      </div>
+      <table class="orders-table" id="ordersTable">
+        <thead>
+          <tr>
+            <th>Unit</th>
+            <th>Order</th>
+            <th>Target</th>
+          </tr>
+        </thead>
+        <tbody id="ordersBody">
+        </tbody>
+      </table>
+
+      <div class="controls-row">
+        <div>
+          <button id="adjudicateBtn">Adjudicate Turn</button>
+          <button class="secondary" id="resetBtn">Reset Game</button>
+        </div>
+        <div class="hint">
+          Engine supports holds, moves, adjacency, and basic bounces.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Map Data</h2>
+      <div class="map-grid" id="mapView"></div>
+
+      <h3 style="margin-top: 14px;">Turn Log</h3>
+      <div id="logView" class="log"></div>
+    </section>
+  </div>
+
+  <script>
+    // Data model
+
+    const provinces = {
+      Waterdeep: {
+        name: "Waterdeep",
+        type: "land",
+        isSupplyCenter: true,
+        neighbors: ["SwordMountains", "Daggerford", "SeaOfSwords"]
+      },
+      SwordMountains: {
+        name: "SwordMountains",
+        type: "land",
+        isSupplyCenter: false,
+        neighbors: ["Waterdeep", "Neverwinter"]
+      },
+      Daggerford: {
+        name: "Daggerford",
+        type: "land",
+        isSupplyCenter: true,
+        neighbors: ["Waterdeep", "BaldursGate", "SeaOfSwords"]
+      },
+      BaldursGate: {
+        name: "BaldursGate",
+        type: "land",
+        isSupplyCenter: true,
+        neighbors: ["Daggerford", "ChiontharMouth"]
+      },
+      ChiontharMouth: {
+        name: "ChiontharMouth",
+        type: "coast",
+        isSupplyCenter: false,
+        neighbors: ["BaldursGate", "SeaOfSwords"]
+      },
+      Neverwinter: {
+        name: "Neverwinter",
+        type: "coast",
+        isSupplyCenter: true,
+        neighbors: ["SwordMountains", "SeaOfSwords"]
+      },
+      SeaOfSwords: {
+        name: "SeaOfSwords",
+        type: "sea",
+        isSupplyCenter: false,
+        neighbors: ["Waterdeep", "Daggerford", "ChiontharMouth", "Neverwinter"]
+      }
+    };
+
+    const initialUnits = [
+      { power: "LordsAlliance", type: "A", location: "Waterdeep" },
+      { power: "LordsAlliance", type: "F", location: "SeaOfSwords" },
+      { power: "BaldursGate", type: "A", location: "BaldursGate" },
+      { power: "Neverwinter", type: "A", location: "Neverwinter" }
+    ];
+
+    let gameState = null;
+    let logEntries = [];
+
+    function resetGame() {
+      gameState = {
+        year: 1,
+        season: "Spring",
+        units: JSON.parse(JSON.stringify(initialUnits))
+      };
+      logEntries = [];
+      addLog("Game reset. Year 1 Spring. Initial positions loaded.");
+      renderAll();
+    }
+
+    function addLog(text) {
+      const timestamp = new Date().toLocaleTimeString();
+      logEntries.unshift("[" + timestamp + "] " + text);
+      renderLog();
+    }
+
+    // Rendering
+
+    function renderStateSummary() {
+      const el = document.getElementById("stateSummary");
+      el.textContent = "Year " + gameState.year + " " + gameState.season 
+        + " | Units in play: " + gameState.units.length;
+    }
+
+    function renderUnits() {
+      const container = document.getElementById("unitsView");
+      container.innerHTML = "";
+      gameState.units.forEach(u => {
+        const row = document.createElement("div");
+        row.className = "unit-row";
+
+        const left = document.createElement("div");
+        const power = document.createElement("span");
+        power.className = "unit-power";
+        power.textContent = u.power;
+
+        const unitType = document.createElement("span");
+        unitType.className = "tag " + (u.type === "A" ? "tag-army" : "tag-fleet");
+        unitType.textContent = u.type === "A" ? "Army" : "Fleet";
+
+        left.appendChild(power);
+        left.appendChild(unitType);
+
+        const right = document.createElement("div");
+        right.className = "unit-location";
+        right.textContent = provinces[u.location].name;
+
+        if (provinces[u.location].isSupplyCenter) {
+          const scTag = document.createElement("span");
+          scTag.className = "tag tag-sc";
+          scTag.textContent = "SC";
+          right.appendChild(scTag);
+        }
+
+        row.appendChild(left);
+        row.appendChild(right);
+        container.appendChild(row);
+      });
+    }
+
+    function renderOrdersForm() {
+      const body = document.getElementById("ordersBody");
+      body.innerHTML = "";
+
+      gameState.units.forEach((u, index) => {
+        const tr = document.createElement("tr");
+
+        const tdUnit = document.createElement("td");
+        tdUnit.textContent = u.power + " " + (u.type === "A" ? "Army" : "Fleet") 
+          + " in " + provinces[u.location].name;
+
+        const tdOrderType = document.createElement("td");
+        const orderSelect = document.createElement("select");
+        orderSelect.dataset.index = index;
+        orderSelect.dataset.kind = "orderType";
+        ["HOLD", "MOVE"].forEach(val => {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.textContent = val;
+          orderSelect.appendChild(opt);
+        });
+        tdOrderType.appendChild(orderSelect);
+
+        const tdTarget = document.createElement("td");
+        const targetSelect = document.createElement("select");
+        targetSelect.dataset.index = index;
+        targetSelect.dataset.kind = "target";
+        const emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = "(none)";
+        targetSelect.appendChild(emptyOpt);
+
+        provinces[u.location].neighbors.forEach(n => {
+          const opt = document.createElement("option");
+          opt.value = n;
+          opt.textContent = provinces[n].name;
+          targetSelect.appendChild(opt);
+        });
+
+        tdTarget.appendChild(targetSelect);
+
+        tr.appendChild(tdUnit);
+        tr.appendChild(tdOrderType);
+        tr.appendChild(tdTarget);
+        body.appendChild(tr);
+      });
+    }
+
+    function renderMapView() {
+      const container = document.getElementById("mapView");
+      container.innerHTML = "";
+
+      Object.values(provinces).forEach(p => {
+        const row = document.createElement("div");
+        row.className = "province-row";
+
+        const name = document.createElement("div");
+        name.className = "province-name";
+        name.textContent = p.name;
+
+        const typePill = document.createElement("span");
+        typePill.className = "type-pill";
+        typePill.textContent = p.type === "land" 
+          ? "Land" 
+          : (p.type === "sea" ? "Sea" : "Coast");
+        name.appendChild(typePill);
+
+        if (p.isSupplyCenter) {
+          const scTag = document.createElement("span");
+          scTag.className = "tag tag-sc";
+          scTag.textContent = "Supply Center";
+          name.appendChild(scTag);
+        }
+
+        const neighbors = document.createElement("div");
+        neighbors.className = "neighbors";
+        const neighborNames = p.neighbors.map(n => provinces[n].name);
+        neighbors.textContent = "Adjacent to: " + neighborNames.join(", ");
+
+        row.appendChild(name);
+        row.appendChild(neighbors);
+        container.appendChild(row);
+      });
+    }
+
+    function renderLog() {
+      const el = document.getElementById("logView");
+      el.textContent = logEntries.join("\n");
+    }
+
+    function renderAll() {
+      renderStateSummary();
+      renderUnits();
+      renderOrdersForm();
+      renderMapView();
+      renderLog();
+    }
+
+    // Orders and adjudication
+
+    function collectOrders() {
+      const orderSelects = document.querySelectorAll("select[data-kind='orderType']");
+      const targetSelects = document.querySelectorAll("select[data-kind='target']");
+
+      const perUnit = {};
+
+      orderSelects.forEach(sel => {
+        const index = sel.dataset.index;
+        if (!perUnit[index]) perUnit[index] = {};
+        perUnit[index].orderType = sel.value;
+      });
+
+      targetSelects.forEach(sel => {
+        const index = sel.dataset.index;
+        if (!perUnit[index]) perUnit[index] = {};
+        perUnit[index].target = sel.value;
+      });
+
+      const orders = [];
+      gameState.units.forEach((u, index) => {
+        const info = perUnit[index] || {};
+        const orderType = info.orderType || "HOLD";
+        const target = info.target || null;
+        orders.push({
+          power: u.power,
+          unitType: u.type,
+          origin: u.location,
+          orderType,
+          target
+        });
+      });
+      return orders;
+    }
+
+    function adjudicateTurn() {
+      const orders = collectOrders();
+      const unitPositions = {};
+      gameState.units.forEach(u => {
+        unitPositions[u.location] = u;
+      });
+
+      const moves = {}; // origin -> final destination
+
+      const messages = [];
+
+      orders.forEach(o => {
+        const originName = provinces[o.origin].name;
+        if (o.orderType === "HOLD") {
+          moves[o.origin] = o.origin;
+          messages.push(o.power + " unit in " + originName + " holds.");
+          return;
+        }
+
+        if (o.orderType === "MOVE") {
+          if (!o.target) {
+            moves[o.origin] = o.origin;
+            messages.push(o.power + " unit in " + originName + " attempted a move with no target and holds instead.");
+            return;
+          }
+
+          const province = provinces[o.origin];
+          if (!province.neighbors.includes(o.target)) {
+            moves[o.origin] = o.origin;
+            messages.push(
+              o.power + " unit in " + originName + " attempted illegal move to "
+              + provinces[o.target].name + " and holds instead."
+            );
+            return;
+          }
+
+          if (!unitPositions[o.target]) {
+            moves[o.origin] = o.target;
+            messages.push(
+              o.power + " unit in " + originName + " moves to " 
+              + provinces[o.target].name + "."
+            );
+          } else {
+            moves[o.origin] = o.origin;
+            messages.push(
+              o.power + " unit in " + originName + " bounces in " 
+              + provinces[o.target].name + " and stays in place."
+            );
+          }
+        }
+      });
+
+      const newUnits = gameState.units.map(u => {
+        const moveDest = moves[u.location];
+        if (moveDest) {
+          return {
+            power: u.power,
+            type: u.type,
+            location: moveDest
+          };
+        }
+        // units with no explicit order hold
+        messages.push(u.power + " unit in " + provinces[u.location].name + " had no order and holds.");
+        return u;
+      });
+
+      let newSeason;
+      let newYear = gameState.year;
+      if (gameState.season === "Spring") {
+        newSeason = "Fall";
+      } else {
+        newSeason = "Spring";
+        newYear = gameState.year + 1;
+      }
+
+      gameState.units = newUnits;
+      gameState.year = newYear;
+      gameState.season = newSeason;
+
+      addLog("Orders resolved:\n" + messages.join("\n"));
+      renderAll();
+    }
+
+    // Event listeners
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("adjudicateBtn").addEventListener("click", adjudicateTurn);
+      document.getElementById("resetBtn").addEventListener("click", resetGame);
+      resetGame();
+    });
+  </script>
+</body>
+</html>
